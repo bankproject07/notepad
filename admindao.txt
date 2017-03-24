@@ -1,0 +1,127 @@
+package com.cg.obs.dao;
+
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import com.cg.obs.bean.AccountMaster;
+import com.cg.obs.bean.Admin;
+import com.cg.obs.bean.Customer;
+import com.cg.obs.exception.UserException;
+import com.cg.obs.util.DBUtil;
+
+public class AdminDaoImpl implements IAdminDao {
+
+	PreparedStatement pst;
+	Connection con;
+	@Override
+	public Customer getCustomer(int id) throws UserException 
+	{
+		Customer cust = null;
+		try
+		{
+			con=DBUtil.getConnection();
+			String sql="SELECT * FROM customer where customer_id=?";
+			pst = con.prepareStatement(sql);
+			pst.setInt(1, id);
+			ResultSet res=pst.executeQuery();
+			res.next();
+			cust= new Customer();
+			cust.setCustomer_ID(res.getLong(1));
+			cust.setCustomer_Name(res.getString(2));
+			cust.setEmail(res.getString(3));
+			cust.setAddress(res.getString(4));
+			cust.setPancard(res.getString(5));
+			
+			
+		}
+		catch (SQLException e)
+		{
+			throw new UserException("error while fetching data"+e.getMessage());
+		}
+	
+		return cust;
+	}
+	Statement st;
+	@Override
+	public Admin getAdmin(String id) throws UserException {
+		Admin admin=null;
+		try {
+			con=DBUtil.getConnection();
+			String sql="SELECT * FROM Admin";
+			st=con.createStatement();
+			ResultSet rs=st.executeQuery(sql);
+			rs.next();
+			admin=new Admin();
+			admin.setAdminid(rs.getString(1));
+			admin.setAdminPassword(rs.getString(2));
+			
+		} 
+		catch (SQLException e) {
+			
+			e.printStackTrace();
+		}
+		return admin;
+	}
+	@Override
+	public int addUsers(Customer customer, AccountMaster account) throws UserException
+	{
+		int accountid = -1;
+		try
+		{
+			con=DBUtil.getConnection();
+			//String cust_seq="select custid_seq.nextVal from dual";
+//			ResultSet res = st.executeQuery(cust_seq);
+			String acc_seq = "select accid_seq.nextVal from dual";
+			st=con.createStatement();
+			ResultSet rs = st.executeQuery(acc_seq);
+			while(rs.next()==false)
+			{
+				throw new UserException("Error Occured while generating account id ");
+			}
+		
+			int accId =rs.getInt(1);
+			String custname = customer.getCustomer_Name();
+			String address = customer.getAddress();
+			String mail = customer.getEmail();
+			String pancard = customer.getPancard();
+			
+			//account master 
+			
+			String accountType = account.getAccountType();
+			float balance = account.getAccount_bal();
+			Date openDate = account.getOpen_date();
+			
+			String insert_cust ="insert into customer values (?,?,?,?,?)";
+			String insert_accMaster ="insert into account_master values(?,?,?,?)";
+			pst = con.prepareStatement(insert_accMaster);
+			pst.setInt(1, accId);
+			pst.setString(2, accountType);
+			pst.setFloat(3, balance);
+			pst.setDate(4, openDate);
+			pst.executeQuery();
+			
+			pst= con.prepareStatement(insert_cust);
+			pst.setInt(1, accId);
+			pst.setString(2, custname);
+			pst.setString(3, mail);
+			pst.setString(4, address);
+			pst.setString(5, pancard);
+			pst.executeQuery();
+			
+			accountid = accId;
+			
+			
+		}
+		catch (SQLException e) 
+		{	
+			throw new UserException("Error occured while adding data : reason "+e.getMessage());
+		}
+		
+		return accountid;
+	}
+
+}
